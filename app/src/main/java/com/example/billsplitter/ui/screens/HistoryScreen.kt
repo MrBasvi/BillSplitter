@@ -17,7 +17,6 @@ import java.util.*
 @Composable
 fun HistoryScreen(
     calculations: List<SplitCalculation>,
-    onCalculationClick: (String) -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {

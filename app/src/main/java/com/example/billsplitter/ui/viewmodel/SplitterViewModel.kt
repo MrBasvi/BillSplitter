@@ -1,101 +1,69 @@
 package com.example.billsplitter.ui.viewmodel
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.example.billsplitter.model.SplitCalculation
 import com.example.billsplitter.ui.state.SplitterUiState
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 
 class SplitterViewModel : ViewModel() {
-    private val _uiState = MutableStateFlow(SplitterUiState())
-    val uiState: StateFlow<SplitterUiState> = _uiState.asStateFlow()
+    var uiState by mutableStateOf(SplitterUiState())
+        private set
 
     fun updateBillAmount(amount: String) {
-        _uiState.update { it.copy(billAmount = amount) }
+        uiState = uiState.copy(billAmount = amount.toDoubleOrNull())
     }
 
     fun updateNumberOfPeople(people: String) {
-        _uiState.update { it.copy(numberOfPeople = people) }
+        uiState = uiState.copy(numberOfPeople = people.toIntOrNull())
     }
 
     fun updateTipPercentage(percentage: Double) {
-        _uiState.update { it.copy(tipPercentage = percentage) }
+        uiState = uiState.copy(tipPercentage = percentage)
     }
 
     fun calculateSplit(): String? {
-        val state = _uiState.value
-        if (!state.isInputValid) return null
-
-        val billAmount = state.billAmount.toDouble()
-        val numberOfPeople = state.numberOfPeople.toInt()
-        val editingId = state.editingCalculationId
+        if (!uiState.isInputValid) return null
         
-        val calculation = if (editingId != null) {
-            val existingCalc = state.calculations.find { it.id == editingId }
-            existingCalc?.copy(
-                billAmount = billAmount,
-                numberOfPeople = numberOfPeople,
-                tipPercentage = state.tipPercentage
-            ) ?: SplitCalculation(
-                billAmount = billAmount,
-                numberOfPeople = numberOfPeople,
-                tipPercentage = state.tipPercentage
-            )
-        } else {
-            SplitCalculation(
-                billAmount = billAmount,
-                numberOfPeople = numberOfPeople,
-                tipPercentage = state.tipPercentage
-            )
-        }
-
-        _uiState.update { currentState ->
-            val updatedCalculations = if (editingId != null) {
-                currentState.calculations.map { if (it.id == editingId) calculation else it }
-            } else {
-                (listOf(calculation) + currentState.calculations).take(5)
-            }
-            
-            currentState.copy(
-                currentCalculation = calculation,
-                calculations = updatedCalculations,
-                editingCalculationId = null
-            )
-        }
-
+        val calculation = createCalculation()
+        updateHistory(calculation)
+        
         return calculation.id
     }
 
+    private fun createCalculation(): SplitCalculation {
+        val billAmount = uiState.billAmount!!
+        val numberOfPeople = uiState.numberOfPeople!!
+        val tipPercentage = uiState.tipPercentage
+        
+        return SplitCalculation(
+            billAmount = billAmount,
+            numberOfPeople = numberOfPeople,
+            tipPercentage = tipPercentage
+        )
+    }
+
+    private fun updateHistory(calculation: SplitCalculation) {
+        val updatedCalculations = (listOf(calculation) + uiState.calculations).take(5)
+        
+        uiState = uiState.copy(
+            currentCalculation = calculation,
+            calculations = updatedCalculations
+        )
+    }
+
     fun getCalculationById(id: String): SplitCalculation? {
-        return _uiState.value.calculations.find { it.id == id }
-            ?: _uiState.value.currentCalculation?.takeIf { it.id == id }
+        return uiState.calculations.find { it.id == id }
+            ?: uiState.currentCalculation?.takeIf { it.id == id }
     }
 
     fun resetCalculation() {
-        _uiState.update {
-            it.copy(
-                billAmount = "",
-                numberOfPeople = "",
-                tipPercentage = 15.0,
-                currentCalculation = null,
-                editingCalculationId = null
-            )
-        }
-    }
-    
-    fun startEditingCalculation(calculationId: String) {
-        val calculation = getCalculationById(calculationId)
-        if (calculation != null) {
-            _uiState.update {
-                it.copy(
-                    billAmount = calculation.billAmount.toString(),
-                    numberOfPeople = calculation.numberOfPeople.toString(),
-                    tipPercentage = calculation.tipPercentage.toDouble(),
-                    editingCalculationId = calculationId
-                )
-            }
-        }
+        uiState = uiState.copy(
+            billAmount = null,
+            numberOfPeople = null,
+            tipPercentage = 15.0,
+            currentCalculation = null
+        )
     }
 }

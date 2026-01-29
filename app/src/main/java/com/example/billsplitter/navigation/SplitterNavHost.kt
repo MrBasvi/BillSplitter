@@ -1,8 +1,6 @@
 package com.example.billsplitter.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -21,7 +19,7 @@ fun SplitterNavHost(
     viewModel: SplitterViewModel,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState = viewModel.uiState
 
     NavHost(
         navController = navController,
@@ -41,8 +39,8 @@ fun SplitterNavHost(
 
         composable(NavigationRoutes.Input.route) {
             InputScreen(
-                billAmount = uiState.billAmount,
-                numberOfPeople = uiState.numberOfPeople,
+                billAmount = uiState.billAmount?.toString() ?: "",
+                numberOfPeople = uiState.numberOfPeople?.toString() ?: "",
                 tipPercentage = uiState.tipPercentage,
                 onBillAmountChange = viewModel::updateBillAmount,
                 onNumberOfPeopleChange = viewModel::updateNumberOfPeople,
@@ -73,7 +71,6 @@ fun SplitterNavHost(
                 ResultScreen(
                     calculation = calculation,
                     onBackToEdit = {
-                        viewModel.startEditingCalculation(calculation.id)
                         navController.popBackStack()
                     },
                     onNewCalculation = {
@@ -88,9 +85,6 @@ fun SplitterNavHost(
         composable(NavigationRoutes.History.route) {
             HistoryScreen(
                 calculations = uiState.calculations,
-                onCalculationClick = { calcId ->
-                    navController.navigate(NavigationRoutes.Result.createRoute(calcId))
-                },
                 onBackClick = {
                     navController.popBackStack()
                 }
